@@ -120,10 +120,10 @@ ui <- fluidPage(
   
   fluidRow(
     column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_total", inline = TRUE)), div(class = "kpi-label", "Total Records"))),
-    column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_visible", inline = TRUE)), div(class = "kpi-label", "Visible Records"))),
+       column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_visible", inline = TRUE)), div(class = "kpi-label", "Visible Records"))),
     column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_avg_value", inline = TRUE)), div(class = "kpi-label", "Average Value"))),
-    column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_median_value", inline = TRUE)), div(class = "kpi-label", "Median Value"))),
-    column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_avg_risk", inline = TRUE)), div(class = "kpi-label", "Avg Risk Score"))),
+          column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_median_value", inline = TRUE)), div(class = "kpi-label", "Median Value"))),
+           column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_avg_risk", inline = TRUE)), div(class = "kpi-label", "Avg Risk Score"))),
     column(2, div(class = "kpi-box", div(class = "kpi-value", textOutput("kpi_avg_demand", inline = TRUE)), div(class = "kpi-label", "Avg Demand Score")))
   ),
   
@@ -132,7 +132,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       width = 3,
-      h4("🔍 Filters"),
+      h4("Filters"),
       
       pickerInput("muni_filter", "Municipality",
                   choices = c("All", muni_names),
@@ -177,11 +177,11 @@ ui <- fluidPage(
                   multiple = TRUE),
       
       br(),
-      actionButton("reset_filters", "🔄 Reset All Filters", icon = icon("undo"), class = "btn-primary btn-block"),
+      actionButton("reset_filters", "Reset All Filters", icon = icon("undo"), class = "btn-primary btn-block"),
       actionButton("reset_view", "↺ Reset Map View", icon = icon("refresh"), class = "btn-secondary btn-block"),
       
       hr(),
-      downloadButton("export_csv", "📥 Export Filtered Data (CSV)", class = "btn-success btn-block")
+      downloadButton("export_csv", "Export Filtered Data (CSV)", class = "btn-success btn-block")
     ),
     
     mainPanel(
@@ -269,7 +269,7 @@ server <- function(input, output, session) {
     data
   })
   
-  # ---- KPI Outputs ----
+  #KPI Outputs 
   kpis <- reactive({ compute_kpis(filtered_data()) })
   
   output$kpi_total <- renderText({ kpis()$total })
@@ -287,7 +287,7 @@ server <- function(input, output, session) {
     if (kpis()$total == 0) "N/A" else round(kpis()$avg_demand, 1)
   })
   
-  # ---- Map ----
+  #Map
   output$map <- renderLeaflet({
     leaflet() %>%
       setView(lng = 121.3, lat = 14.2, zoom = 10) %>%
@@ -314,7 +314,7 @@ server <- function(input, output, session) {
     # Base map update
     proxy <- leafletProxy("map") %>% clearShapes() %>% clearMarkers() %>% clearControls()
     
-    # 1. Boundaries
+    #Boundaries
     if (input$show_boundaries) {
       poly_colors <- ifelse(laguna$NAME_2 %in% selected_muni(), "#ffd700", "#4d4d4d")
       poly_opacity <- ifelse(laguna$NAME_2 %in% selected_muni(), 0.7, 0.3)
@@ -332,7 +332,7 @@ server <- function(input, output, session) {
         )
     }
     
-    # 2. Choropleth (if enabled) – overrides boundary colors
+    # 2. Choropleth
     if (input$show_choropleth) {
       metric <- input$choropleth_metric
       # Aggregate per municipality
@@ -354,7 +354,7 @@ server <- function(input, output, session) {
                          "Total Value" = laguna_merged$TotalValue,
                          "Avg Risk" = laguna_merged$AvgRisk,
                          "Avg Demand" = laguna_merged$AvgDemand)
-      # Replace NA with 0 (for municipalities with no records)
+      # Replace NA with 0
       col_vals[is.na(col_vals)] <- 0
       
       pal <- colorNumeric(palette = "YlOrRd", domain = col_vals, na.color = "grey")
@@ -363,8 +363,8 @@ server <- function(input, output, session) {
           data = laguna_merged,
           layerId = ~NAME_2,
           fillColor = ~pal(col_vals),
-          fillOpacity = 0.7,
-          weight = 1.5,
+                  fillOpacity = 0.7,
+              weight = 1.5,
           color = "#333333",
           label = ~paste0(NAME_2, ": ", format(col_vals, big.mark = ",")),
           labelOptions = labelOptions(style = list("font-weight" = "bold"))
@@ -372,19 +372,19 @@ server <- function(input, output, session) {
         addLegend(position = "bottomright", pal = pal, values = col_vals, title = metric, labFormat = labelFormat(prefix = ifelse(metric %in% c("Average Value", "Total Value"), "₱", ""), big.mark = ","))
     }
     
-    # 3. Scatter points (if enabled and not clustering)
+    # 3. Scatter points
     if (input$show_scatter && !input$show_clusters) {
       proxy <- proxy %>%
         addCircleMarkers(
-          data = df,
-          lng = ~Longitude,
+              data = df,
+                 lng = ~Longitude,
           lat = ~Latitude,
           radius = ~ sqrt(Value / 100000),
-          color = ~ colorNumeric(palette = c("green", "yellow", "red"), domain = Value)(Value),
+             color = ~ colorNumeric(palette = c("green", "yellow", "red"), domain = Value)(Value),
           fillOpacity = 0.7,
-          stroke = FALSE,
+              stroke = FALSE,
           layerId = ~ID,
-          label = ~paste0(Municipality, " (", Category, ") - ₱", format(Value, big.mark = ",")),
+               label = ~paste0(Municipality, " (", Category, ") - ₱", format(Value, big.mark = ",")),
           labelOptions = labelOptions(noHide = FALSE, direction = "auto", textsize = "12px"),
           popup = ~paste0(
             "<b>ID:</b> ", ID, "<br>",
@@ -402,7 +402,7 @@ server <- function(input, output, session) {
                   values = df$Value, title = "Value", labFormat = labelFormat(prefix = "₱", big.mark = ","))
     }
     
-    # 4. Clusters (if enabled)
+    #Clusters 
     if (input$show_clusters) {
       proxy <- proxy %>%
         addMarkers(
@@ -414,7 +414,7 @@ server <- function(input, output, session) {
           popup = ~paste0(
             "<b>ID:</b> ", ID, "<br>",
             "<b>Municipality:</b> ", Municipality, "<br>",
-            "<b>Value:</b> ₱", format(Value, big.mark = ","), "<br>",
+                "<b>Value:</b> ₱", format(Value, big.mark = ","), "<br>",
             "<b>Category:</b> ", Category, "<br>",
             "<b>Status:</b> ", Status, "<br>",
             "<b>Date:</b> ", Date, "<br>",
@@ -424,9 +424,8 @@ server <- function(input, output, session) {
         )
     }
     
-    # 5. Heatmap (if enabled)
+    #Heatmap 
     if (input$show_heatmap) {
-      # Use leaflet.extras::addHeatmap
       proxy <- proxy %>%
         addHeatmap(
           data = df,
@@ -439,7 +438,7 @@ server <- function(input, output, session) {
         )
     }
     
-    # If nothing shown, show empty message
+    # show empty message
     if (!input$show_scatter && !input$show_clusters && !input$show_heatmap && !input$show_boundaries && !input$show_choropleth) {
       proxy <- proxy %>%
         addControl(html = "<div style='background:white; padding:15px;'>Please enable at least one layer.</div>",
@@ -447,7 +446,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # ---- Municipality Click ----
+  #  Municipality Click 
   observeEvent(input$map_shape_click, {
     click <- input$map_shape_click
     if (!is.null(click$id) && click$id %in% laguna$NAME_2) {
@@ -464,9 +463,9 @@ server <- function(input, output, session) {
           "<b>", muni, "</b><br>",
           "Records: ", nrow(df_muni), " | ",
           "Avg Value: ₱", format(round(stats$avg_value, 0), big.mark = ","), " | ",
-          "Median: ₱", format(round(stats$median_value, 0), big.mark = ","), " | ",
+                 "Median: ₱", format(round(stats$median_value, 0), big.mark = ","), " | ",
           "Total: ₱", format(stats$total_value, big.mark = ","), "<br>",
-          "Active: ", sum(df_muni$Status == "Active"), " | ",
+                 "Active: ", sum(df_muni$Status == "Active"), " | ",
           "Available: ", sum(df_muni$Status == "Available"), " | ",
           "Pending: ", sum(df_muni$Status == "Pending"), " | ",
           "Maintenance: ", sum(df_muni$Status == "Maintenance"), "<br>",
@@ -480,7 +479,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # ---- Charts (Plotly) ----
+  # Charts 
   output$chart_records_muni <- renderPlotly({
     df <- filtered_data()
     if (nrow(df) == 0) return(plotly_empty(type = "scatter", mode = "markers", height = 300))
@@ -510,7 +509,7 @@ server <- function(input, output, session) {
   output$chart_status <- renderPlotly({
     df <- filtered_data()
     if (nrow(df) == 0) return(plotly_empty(type = "pie", height = 250))
-    df_sum <- df %>% group_by(Status) %>% summarise(Count = n())
+          df_sum <- df %>% group_by(Status) %>% summarise(Count = n())
     plot_ly(df_sum, labels = ~Status, values = ~Count, type = "pie") %>%
       layout(title = "Status Distribution", height = 250)
   })
@@ -537,7 +536,7 @@ server <- function(input, output, session) {
       layout(title = "Risk vs Demand", xaxis = list(title = "Risk Score"), yaxis = list(title = "Demand Score"), height = 300)
   })
   
-  # ---- Ranking Table (DT) ----
+  # Ranking Table
   output$ranking_table <- renderDT({
     df <- filtered_data()
     if (nrow(df) == 0) {
@@ -561,7 +560,7 @@ server <- function(input, output, session) {
       formatRound(columns = c("AvgValue", "TotalValue", "AvgRisk", "AvgDemand"), digits = 1)
   })
   
-  # ---- Data Table (DT) ----
+  #  Data Table 
   output$data_table <- renderDT({
     df <- filtered_data()
     if (nrow(df) == 0) {
@@ -573,7 +572,7 @@ server <- function(input, output, session) {
       formatCurrency(columns = "Value", currency = "₱", interval = 3, mark = ",")
   })
   
-  # ---- Export CSV ----
+  #  Export CSV
   output$export_csv <- downloadHandler(
     filename = function() { paste0("laguna_data_", Sys.Date(), ".csv") },
     content = function(file) {
@@ -581,15 +580,15 @@ server <- function(input, output, session) {
     }
   )
   
-  # ---- Reset Filters ----
+  #  Reset Filters 
   observeEvent(input$reset_filters, {
     updatePickerInput(session, "muni_filter", selected = "All")
-    updatePickerInput(session, "cat_filter", selected = "All")
-    updatePickerInput(session, "status_filter", selected = "All")
+             updatePickerInput(session, "cat_filter", selected = "All")
+              updatePickerInput(session, "status_filter", selected = "All")
     updateSliderInput(session, "value_filter", value = c(min(synthetic_data$Value), max(synthetic_data$Value)))
-    updateSliderInput(session, "risk_filter", value = c(0, 100))
+                 updateSliderInput(session, "risk_filter", value = c(0, 100))
     updateSliderInput(session, "demand_filter", value = c(0, 100))
-    updateDateRangeInput(session, "date_filter", start = min(synthetic_data$Date), end = max(synthetic_data$Date))
+             updateDateRangeInput(session, "date_filter", start = min(synthetic_data$Date), end = max(synthetic_data$Date))
     updatePickerInput(session, "year_filter", selected = sort(unique(synthetic_data$Year)))
     selected_muni(NULL)
     output$muni_analysis <- renderUI({ HTML("<p>Click a municipality on the map to see detailed analysis.</p>") })
